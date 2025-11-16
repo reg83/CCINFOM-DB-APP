@@ -25,7 +25,6 @@ import com.countryclub.model.Event;
 
 public class MainFrame extends JFrame {
 
-    // Add serialVersionUID to silence the warning
     private static final long serialVersionUID = 1L;
 
     private JTabbedPane tabbedPane;
@@ -43,11 +42,10 @@ public class MainFrame extends JFrame {
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         
-        // Try to center the window
         try {
             setLocationRelativeTo(null);
         } catch (Exception e) {
-            // Ignore if it fails (e.g., headless environment)
+            // Ignore
         }
 
         // Initialize DAOs
