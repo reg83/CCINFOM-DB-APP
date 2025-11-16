@@ -7,6 +7,7 @@ import com.countryclub.db.DatabaseConnector;
 
 /**
  * Handles all financial transactions (Sales, etc.) in the database.
+ * Replaces the in-memory logic of the "Transaction" files with real SQL.
  */
 public class TransactionDAO {
 
@@ -24,6 +25,7 @@ public class TransactionDAO {
      * @param date The date of the transaction (Date object)
      */
     public void addTransaction(int memberId, double amount, String type, Date date) throws SQLException {
+        // validation
         if (amount <= 0) {
             throw new IllegalArgumentException("Transaction amount must be positive.");
         }
