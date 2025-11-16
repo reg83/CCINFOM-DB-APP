@@ -3,8 +3,6 @@ package com.countryclub.ui;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
 import java.sql.SQLException;
 
@@ -14,6 +12,7 @@ import com.countryclub.dao.MemberRecords;
 import com.countryclub.dao.StaffRecords;
 import com.countryclub.dao.InventoryRecords;
 import com.countryclub.dao.EventRecords;
+import com.countryclub.dao.TransactionDAO;
 
 // Import your Models
 import com.countryclub.model.EventReportItem;
@@ -26,6 +25,9 @@ import com.countryclub.model.Event;
 
 public class MainFrame extends JFrame {
 
+    // Add serialVersionUID to silence the warning
+    private static final long serialVersionUID = 1L;
+
     private JTabbedPane tabbedPane;
 
     // DAOs
@@ -34,12 +36,19 @@ public class MainFrame extends JFrame {
     private StaffRecords staffRecords;
     private InventoryRecords inventoryRecords;
     private EventRecords eventRecords;
+    private TransactionDAO transactionDAO;
 
     public MainFrame() {
         setTitle("Country Club Management System");
         setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
+        
+        // Try to center the window
+        try {
+            setLocationRelativeTo(null);
+        } catch (Exception e) {
+            // Ignore if it fails (e.g., headless environment)
+        }
 
         // Initialize DAOs
         try {
@@ -48,10 +57,10 @@ public class MainFrame extends JFrame {
             staffRecords = new StaffRecords();
             inventoryRecords = new InventoryRecords();
             eventRecords = new EventRecords();
+            transactionDAO = new TransactionDAO(); 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(this, "Error connecting to database: " + e.getMessage(), "Connection Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
-            System.exit(1); // Exit if DB connection fails
         }
 
         tabbedPane = new JTabbedPane();
@@ -62,6 +71,7 @@ public class MainFrame extends JFrame {
         tabbedPane.addTab("Staff", createStaffPanel());
         tabbedPane.addTab("Inventory", createInventoryPanel());
         tabbedPane.addTab("Events", createEventsPanel());
+        tabbedPane.addTab("Transactions", createTransactionPanel());
 
         add(tabbedPane);
     }
@@ -70,12 +80,11 @@ public class MainFrame extends JFrame {
     private JPanel createReportsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         
-        // Controls at the top
         JPanel controlPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         String[] reportTypes = {"Event Report", "Sales Report", "Staff Schedule Report", "Monthly Membership", "Yearly Membership"};
         JComboBox<String> reportTypeCombo = new JComboBox<>(reportTypes);
-        JTextField monthField = new JTextField("4", 3); // Default Month
-        JTextField yearField = new JTextField("2025", 5); // Default Year
+        JTextField monthField = new JTextField("4", 3);
+        JTextField yearField = new JTextField("2025", 5);
         JButton generateButton = new JButton("Generate Report");
         
         controlPanel.add(new JLabel("Report Type:"));
@@ -86,14 +95,13 @@ public class MainFrame extends JFrame {
         controlPanel.add(yearField);
         controlPanel.add(generateButton);
 
-        // Table to display results
         JTable reportTable = new JTable();
         JScrollPane scrollPane = new JScrollPane(reportTable);
         
-        // Result Label for single-value reports (like counts)
         JLabel resultLabel = new JLabel("Select a report and click Generate.");
         resultLabel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         resultLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         centerPanel.add(resultLabel, BorderLayout.NORTH);
@@ -146,13 +154,13 @@ public class MainFrame extends JFrame {
 
                     case "Monthly Membership":
                         int mCount = reportDAO.getMonthlyMembershipCount(month, year);
-                        reportTable.setModel(new DefaultTableModel()); // Clear table
+                        reportTable.setModel(new DefaultTableModel());
                         resultLabel.setText("New Members in " + month + "/" + year + ": " + mCount);
                         break;
 
                     case "Yearly Membership":
                         int yCount = reportDAO.getYearlyMembershipCount(year);
-                        reportTable.setModel(new DefaultTableModel()); // Clear table
+                        reportTable.setModel(new DefaultTableModel());
                         resultLabel.setText("Total New Members in " + year + ": " + yCount);
                         break;
                 }
@@ -169,7 +177,6 @@ public class MainFrame extends JFrame {
     private JPanel createMembersPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JButton refreshButton = new JButton("Refresh List");
-        
         JTable table = new JTable();
         JScrollPane scrollPane = new JScrollPane(table);
         
@@ -181,14 +188,10 @@ public class MainFrame extends JFrame {
                 List<Member> members = memberRecords.getAllMembers();
                 DefaultTableModel model = new DefaultTableModel();
                 model.setColumnIdentifiers(new String[]{"ID", "Name", "Email", "Join Date", "Expiry Date"});
-                
                 for (Member m : members) {
                     model.addRow(new Object[]{
-                        m.getMemberId(), 
-                        m.getFirstName() + " " + m.getLastName(), 
-                        m.getEmail(), 
-                        m.getJoinDate(), 
-                        m.getExpiryDate()
+                        m.getMemberId(), m.getFirstName() + " " + m.getLastName(), 
+                        m.getEmail(), m.getJoinDate(), m.getExpiryDate()
                     });
                 }
                 table.setModel(model);
@@ -196,10 +199,6 @@ public class MainFrame extends JFrame {
                 ex.printStackTrace();
             }
         });
-        
-        // Load data initially
-        refreshButton.doClick();
-        
         return panel;
     }
 
@@ -207,7 +206,6 @@ public class MainFrame extends JFrame {
     private JPanel createStaffPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JButton refreshButton = new JButton("Refresh List");
-        
         JTable table = new JTable();
         JScrollPane scrollPane = new JScrollPane(table);
         
@@ -219,14 +217,10 @@ public class MainFrame extends JFrame {
                 List<Staff> staffList = staffRecords.getAllStaff();
                 DefaultTableModel model = new DefaultTableModel();
                 model.setColumnIdentifiers(new String[]{"ID", "Name", "Role", "Email", "Status"});
-                
                 for (Staff s : staffList) {
                     model.addRow(new Object[]{
-                        s.getStaffId(), 
-                        s.getStaffName(), 
-                        s.getRoleName(),
-                        s.getEmail(),
-                        s.getAvailabilityStatus()
+                        s.getStaffId(), s.getStaffName(), s.getRoleName(),
+                        s.getEmail(), s.getAvailabilityStatus()
                     });
                 }
                 table.setModel(model);
@@ -234,7 +228,6 @@ public class MainFrame extends JFrame {
                 ex.printStackTrace();
             }
         });
-        refreshButton.doClick();
         return panel;
     }
     
@@ -242,7 +235,6 @@ public class MainFrame extends JFrame {
     private JPanel createInventoryPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JButton refreshButton = new JButton("Refresh List");
-        
         JTable table = new JTable();
         JScrollPane scrollPane = new JScrollPane(table);
         
@@ -254,14 +246,10 @@ public class MainFrame extends JFrame {
                 List<Inventory> items = inventoryRecords.getAllItems();
                 DefaultTableModel model = new DefaultTableModel();
                 model.setColumnIdentifiers(new String[]{"ID", "Item Name", "Category", "Quantity", "Unit Price"});
-                
                 for (Inventory i : items) {
                     model.addRow(new Object[]{
-                        i.getItemId(), 
-                        i.getItemName(), 
-                        i.getItemCategory(),
-                        i.getItemQuantity(),
-                        i.getItemUnitPrice()
+                        i.getItemId(), i.getItemName(), i.getItemCategory(),
+                        i.getItemQuantity(), i.getItemUnitPrice()
                     });
                 }
                 table.setModel(model);
@@ -269,7 +257,6 @@ public class MainFrame extends JFrame {
                 ex.printStackTrace();
             }
         });
-        refreshButton.doClick();
         return panel;
     }
 
@@ -277,7 +264,6 @@ public class MainFrame extends JFrame {
     private JPanel createEventsPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         JButton refreshButton = new JButton("Refresh List");
-        
         JTable table = new JTable();
         JScrollPane scrollPane = new JScrollPane(table);
         
@@ -289,12 +275,9 @@ public class MainFrame extends JFrame {
                 List<Event> events = eventRecords.getAllEvents();
                 DefaultTableModel model = new DefaultTableModel();
                 model.setColumnIdentifiers(new String[]{"ID", "Event Name", "Date", "Time"});
-                
                 for (Event ev : events) {
                     model.addRow(new Object[]{
-                        ev.getEventId(), 
-                        ev.getEventName(), 
-                        ev.getFromDate(),
+                        ev.getEventId(), ev.getEventName(), ev.getFromDate(),
                         ev.getFromTime() + " - " + ev.getToTime()
                     });
                 }
@@ -303,7 +286,72 @@ public class MainFrame extends JFrame {
                 ex.printStackTrace();
             }
         });
-        refreshButton.doClick();
+        return panel;
+    }
+
+    // --- 6. TRANSACTION PANEL ---
+    private JPanel createTransactionPanel() {
+        JPanel panel = new JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+
+        JTextField memberIdField = new JTextField(10);
+        JTextField amountField = new JTextField(10);
+        String[] types = {"Food", "Beverage", "Merchandise", "Fee"};
+        JComboBox<String> typeCombo = new JComboBox<>(types);
+        JButton submitButton = new JButton("Record Transaction");
+        JLabel statusLabel = new JLabel("Enter details and click Record.");
+
+        // Row 1: Member ID
+        gbc.gridx = 0; gbc.gridy = 0;
+        panel.add(new JLabel("Member ID (0 for Guest):"), gbc);
+        gbc.gridx = 1;
+        panel.add(memberIdField, gbc);
+
+        // Row 2: Amount
+        gbc.gridx = 0; gbc.gridy = 1;
+        panel.add(new JLabel("Amount ($):"), gbc);
+        gbc.gridx = 1;
+        panel.add(amountField, gbc);
+
+        // Row 3: Type
+        gbc.gridx = 0; gbc.gridy = 2;
+        panel.add(new JLabel("Type:"), gbc);
+        gbc.gridx = 1;
+        panel.add(typeCombo, gbc);
+
+        // Row 4: Button
+        gbc.gridx = 1; gbc.gridy = 3;
+        panel.add(submitButton, gbc);
+        
+        // Row 5: Status
+        gbc.gridx = 0; gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        panel.add(statusLabel, gbc);
+
+        submitButton.addActionListener(e -> {
+            try {
+                String memIdText = memberIdField.getText().trim();
+                int memId = memIdText.isEmpty() ? 0 : Integer.parseInt(memIdText);
+                double amount = Double.parseDouble(amountField.getText().trim());
+                String type = (String) typeCombo.getSelectedItem();
+                
+                // Use current date
+                java.sql.Date today = new java.sql.Date(System.currentTimeMillis());
+                
+                transactionDAO.addTransaction(memId, amount, type, today);
+                
+                statusLabel.setText("Success! Recorded $" + amount + " for " + type);
+                amountField.setText(""); // clear field
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(MainFrame.this, "Invalid Number Format. Please check ID and Amount.");
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(MainFrame.this, "Database Error: " + ex.getMessage());
+            }
+        });
+
         return panel;
     }
 
